@@ -110,7 +110,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+    <div className="bg-gradient-to-br from-background via-background to-primary/5">
       {/* Hero Section */}
       <div className="relative overflow-hidden bg-gradient-to-r from-primary/10 to-primary-glow/10 px-4 py-8">
         <div className="max-w-md mx-auto text-center">
