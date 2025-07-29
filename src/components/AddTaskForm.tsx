@@ -12,7 +12,10 @@ interface Task {
   category: "work" | "home" | "wellness" | "personal";
   priority: "low" | "medium" | "high";
   completed: boolean;
-  dueTime?: string;
+  dueDate: Date;
+  startTime?: string;
+  endTime?: string;
+  duration: number;
 }
 
 interface AddTaskFormProps {
@@ -25,7 +28,9 @@ export function AddTaskForm({ onAddTask, isOpen, onToggle }: AddTaskFormProps) {
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState<Task["category"]>("personal");
   const [priority, setPriority] = useState<Task["priority"]>("medium");
-  const [dueTime, setDueTime] = useState("");
+  const [duration, setDuration] = useState(30);
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,14 +40,19 @@ export function AddTaskForm({ onAddTask, isOpen, onToggle }: AddTaskFormProps) {
       title: title.trim(),
       category,
       priority,
-      dueTime: dueTime || undefined,
+      dueDate: new Date(),
+      duration,
+      startTime: startTime || undefined,
+      endTime: endTime || undefined,
     });
 
     // Reset form
     setTitle("");
     setCategory("personal");
     setPriority("medium");
-    setDueTime("");
+    setDuration(30);
+    setStartTime("");
+    setEndTime("");
     onToggle();
   };
 
@@ -119,17 +129,44 @@ export function AddTaskForm({ onAddTask, isOpen, onToggle }: AddTaskFormProps) {
           </div>
         </div>
 
+        <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+                <Label htmlFor="start-time" className="text-sm font-medium">
+                    Start Time (optional)
+                </Label>
+                <Input
+                    id="start-time"
+                    type="time"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    className="bg-background/80"
+                />
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="end-time" className="text-sm font-medium">
+                    End Time (optional)
+                </Label>
+                <Input
+                    id="end-time"
+                    type="time"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                    className="bg-background/80"
+                />
+            </div>
+        </div>
+
         <div className="space-y-2">
-          <Label htmlFor="due-time" className="text-sm font-medium">
-            Due Time (optional)
-          </Label>
-          <Input
-            id="due-time"
-            type="time"
-            value={dueTime}
-            onChange={(e) => setDueTime(e.target.value)}
-            className="bg-background/80"
-          />
+            <Label htmlFor="duration" className="text-sm font-medium">
+                Duration (minutes)
+            </Label>
+            <Input
+                id="duration"
+                type="number"
+                value={duration}
+                onChange={(e) => setDuration(parseInt(e.target.value))}
+                className="bg-background/80"
+            />
         </div>
 
         <div className="flex gap-2 pt-2">

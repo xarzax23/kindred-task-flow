@@ -11,7 +11,10 @@ interface Task {
   category: "work" | "home" | "wellness" | "personal";
   priority: "low" | "medium" | "high";
   completed: boolean;
-  dueTime?: string;
+  dueDate: Date;
+  startTime?: string;
+  endTime?: string;
+  duration: number;
 }
 
 interface TaskCardProps {
@@ -84,11 +87,20 @@ export function TaskCard({ task, onToggleComplete }: TaskCardProps) {
               {task.category}
             </Badge>
             
-            {task.dueTime && (
+            {(task.startTime || task.endTime) && (
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Clock className="h-3 w-3" />
-                {task.dueTime}
+                {task.startTime && <span>{task.startTime}</span>}
+                {task.startTime && task.endTime && <span>-</span>}
+                {task.endTime && <span>{task.endTime}</span>}
+                {task.duration && <span>({task.duration} min)</span>}
               </div>
+            )}
+            {!task.startTime && !task.endTime && task.duration && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Clock className="h-3 w-3" />
+                    {task.duration} min
+                </div>
             )}
           </div>
         </div>

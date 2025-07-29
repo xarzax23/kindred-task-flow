@@ -1,54 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { TaskCard } from "@/components/TaskCard";
 import { MotivationZone } from "@/components/MotivationZone";
 import { ProgressTracker } from "@/components/ProgressTracker";
 import { AddTaskForm } from "@/components/AddTaskForm";
 import { WellnessNudge } from "@/components/WellnessNudge";
 import { useToast } from "@/hooks/use-toast";
+import { useTasks } from "@/context/TaskContext";
+import { isToday } from "date-fns";
 import heroImage from "@/assets/hero-illustration.jpg";
-
-interface Task {
-  id: string;
-  title: string;
-  category: "work" | "home" | "wellness" | "personal";
-  priority: "low" | "medium" | "high";
-  completed: boolean;
-  dueTime?: string;
-}
-
-const sampleTasks: Task[] = [
-  {
-    id: "1",
-    title: "Morning meditation",
-    category: "wellness",
-    priority: "medium",
-    completed: false,
-    dueTime: "08:00"
-  },
-  {
-    id: "2", 
-    title: "Review project proposal",
-    category: "work",
-    priority: "high",
-    completed: false,
-    dueTime: "10:30"
-  },
-  {
-    id: "3",
-    title: "Call mom",
-    category: "personal",
-    priority: "medium",
-    completed: true
-  },
-  {
-    id: "4",
-    title: "Grocery shopping",
-    category: "home",
-    priority: "low",
-    completed: false,
-    dueTime: "16:00"
-  }
-];
 
 const completionMessages = [
   "Beautiful work! You're making amazing progress! ✨",
@@ -59,49 +18,31 @@ const completionMessages = [
 ];
 
 const Index = () => {
-  const [tasks, setTasks] = useState<Task[]>(sampleTasks);
+  const { tasks, addTask, toggleTask } = useTasks();
   const [isAddingTask, setIsAddingTask] = useState(false);
-  const [totalCompleted, setTotalCompleted] = useState(127); // Demo number
-  const [weeklyStreak, setWeeklyStreak] = useState(5); // Demo number
   const { toast } = useToast();
 
-  const todayCompleted = tasks.filter(task => task.completed).length;
-  const todayTotal = tasks.length;
+  const todayTasks = tasks.filter(task => isToday(task.dueDate));
+  const todayCompleted = todayTasks.filter(task => task.completed).length;
+  const todayTotal = todayTasks.length;
+  const totalCompleted = tasks.filter(task => task.completed).length;
+  const weeklyStreak = 5; // This is still a demo number, we can address this later
 
   const handleToggleComplete = (id: string) => {
-    setTasks(prevTasks => 
-      prevTasks.map(task => {
-        if (task.id === id) {
-          const newCompleted = !task.completed;
-          
-          // Show completion celebration
-          if (newCompleted) {
-            const randomMessage = completionMessages[Math.floor(Math.random() * completionMessages.length)];
-            toast({
-              title: "Task Completed! 🎯",
-              description: randomMessage,
-              duration: 3000,
-            });
-            setTotalCompleted(prev => prev + 1);
-          } else {
-            setTotalCompleted(prev => prev - 1);
-          }
-          
-          return { ...task, completed: newCompleted };
-        }
-        return task;
-      })
-    );
+    const task = tasks.find(t => t.id === id);
+    if (task && !task.completed) {
+        const randomMessage = completionMessages[Math.floor(Math.random() * completionMessages.length)];
+        toast({
+            title: "Task Completed! 🎯",
+            description: randomMessage,
+            duration: 3000,
+        });
+    }
+    toggleTask(id);
   };
 
   const handleAddTask = (newTask: Omit<Task, "id" | "completed">) => {
-    const task: Task = {
-      ...newTask,
-      id: Date.now().toString(),
-      completed: false
-    };
-    setTasks(prev => [...prev, task]);
-    
+    addTask({ ...newTask, dueDate: new Date() });
     toast({
       title: "Task Added! 📝",
       description: "Ready to make it happen? You've got this!",
@@ -161,7 +102,7 @@ const Index = () => {
           </h2>
           
           <div className="space-y-3">
-            {tasks.map((task) => (
+            {todayTasks.map((task) => (
               <TaskCard 
                 key={task.id} 
                 task={task} 
@@ -170,9 +111,9 @@ const Index = () => {
             ))}
           </div>
 
-          {tasks.length === 0 && (
+          {todayTasks.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
-              <p className="text-sm">No tasks yet. Ready to add your first one? 🌟</p>
+              <p className="text-sm">No tasks for today. Add a task to get started! 🌟</p>
             </div>
           )}
         </div>
