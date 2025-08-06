@@ -4,7 +4,11 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Plus, X } from "lucide-react";
+import { Plus, X, CalendarIcon } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface Task {
   id: string;
@@ -22,25 +26,27 @@ interface AddTaskFormProps {
   onAddTask: (task: Omit<Task, "id" | "completed">) => void;
   isOpen: boolean;
   onToggle: () => void;
+  initialDate?: Date; // New prop for initial date
 }
 
-export function AddTaskForm({ onAddTask, isOpen, onToggle }: AddTaskFormProps) {
+export function AddTaskForm({ onAddTask, isOpen, onToggle, initialDate }: AddTaskFormProps) {
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState<Task["category"]>("personal");
   const [priority, setPriority] = useState<Task["priority"]>("medium");
   const [duration, setDuration] = useState(30);
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
+  const [dueDate, setDueDate] = useState<Date | undefined>(initialDate || new Date());
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) return;
+    if (!title.trim() || !dueDate) return; // dueDate is now required
 
     onAddTask({
       title: title.trim(),
       category,
       priority,
-      dueDate: new Date(),
+      dueDate,
       duration,
       startTime: startTime || undefined,
       endTime: endTime || undefined,
@@ -53,6 +59,7 @@ export function AddTaskForm({ onAddTask, isOpen, onToggle }: AddTaskFormProps) {
     setDuration(30);
     setStartTime("");
     setEndTime("");
+    setDueDate(initialDate || new Date()); // Reset to initialDate or current date
     onToggle();
   };
 
@@ -127,6 +134,34 @@ export function AddTaskForm({ onAddTask, isOpen, onToggle }: AddTaskFormProps) {
               </SelectContent>
             </Select>
           </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="due-date" className="text-sm font-medium">
+            Due Date
+          </Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={"outline"}
+                className={cn(
+                  "w-full justify-start text-left font-normal bg-background/80",
+                  !dueDate && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {dueDate ? format(dueDate, "PPP") : <span>Pick a date</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <Calendar
+                mode="single"
+                selected={dueDate}
+                onSelect={setDueDate}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
         </div>
 
         <div className="grid grid-cols-2 gap-3">

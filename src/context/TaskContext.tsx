@@ -15,6 +15,7 @@ interface Task {
 interface TaskContextType {
   tasks: Task[];
   addTask: (task: Omit<Task, "id" | "completed">) => void;
+  updateTask: (task: Task) => void;
   toggleTask: (id: string) => void;
 }
 
@@ -39,7 +40,7 @@ const sampleTasks: Task[] = [
       category: "wellness",
       priority: "medium",
       completed: false,
-      dueDate: new Date(),
+      dueDate: new Date(2025, 6, 29), // July 29, 2025
       startTime: "08:00",
       endTime: "08:15",
       duration: 15,
@@ -50,7 +51,7 @@ const sampleTasks: Task[] = [
       category: "work",
       priority: "high",
       completed: false,
-      dueDate: new Date(),
+      dueDate: new Date(2025, 6, 29), // July 29, 2025
       startTime: "10:30",
       endTime: "11:30",
       duration: 60,
@@ -61,7 +62,7 @@ const sampleTasks: Task[] = [
       category: "personal",
       priority: "medium",
       completed: true,
-      dueDate: new Date(),
+      dueDate: new Date(2025, 6, 28), // July 28, 2025
       startTime: "14:00",
       endTime: "14:10",
       duration: 10,
@@ -72,10 +73,32 @@ const sampleTasks: Task[] = [
       category: "home",
       priority: "low",
       completed: false,
-      dueDate: new Date(Date.now() + 86400000), // Tomorrow
+      dueDate: new Date(2025, 7, 1), // August 1, 2025
       startTime: "16:00",
       endTime: "16:45",
       duration: 45,
+    },
+    {
+      id: "5",
+      title: "Team meeting",
+      category: "work",
+      priority: "high",
+      completed: false,
+      dueDate: new Date(2025, 7, 2), // August 2, 2025
+      startTime: "09:00",
+      endTime: "10:00",
+      duration: 60,
+    },
+    {
+      id: "6",
+      title: "Yoga class",
+      category: "wellness",
+      priority: "medium",
+      completed: false,
+      dueDate: new Date(2025, 7, 3), // August 3, 2025
+      startTime: "18:00",
+      endTime: "19:00",
+      duration: 60,
     }
   ];
 
@@ -91,6 +114,10 @@ export const TaskProvider = ({ children }: TaskProviderProps) => {
     setTasks((prevTasks) => [...prevTasks, newTask]);
   };
 
+  const updateTask = (updatedTask: Task) => {
+    setTasks(tasks.map(task => (task.id === updatedTask.id ? updatedTask : task)));
+  };
+
   const toggleTask = (id: string) => {
     setTasks(
       tasks.map((task) =>
@@ -100,7 +127,7 @@ export const TaskProvider = ({ children }: TaskProviderProps) => {
   };
 
   return (
-    <TaskContext.Provider value={{ tasks, addTask, toggleTask }}>
+    <TaskContext.Provider value={{ tasks, addTask, toggleTask, updateTask }}>
       {children}
     </TaskContext.Provider>
   );

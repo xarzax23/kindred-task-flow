@@ -2,8 +2,17 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Clock, Star } from "lucide-react";
+import { CheckCircle2, Clock, Star, Edit } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { EditTaskForm } from "./EditTaskForm"; // We will create this component
 
 interface Task {
   id: string;
@@ -20,6 +29,7 @@ interface Task {
 interface TaskCardProps {
   task: Task;
   onToggleComplete: (id: string) => void;
+  onUpdateTask: (task: Task) => void; // New prop for updating task
 }
 
 const categoryColors = {
@@ -35,8 +45,9 @@ const priorityIcons = {
   high: <Star className="h-3 w-3 text-red-500 fill-current" />
 };
 
-export function TaskCard({ task, onToggleComplete }: TaskCardProps) {
+export function TaskCard({ task, onToggleComplete, onUpdateTask }: TaskCardProps) {
   const [isCompleting, setIsCompleting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false); // State to control edit dialog
 
   const handleToggle = () => {
     setIsCompleting(true);
@@ -44,6 +55,11 @@ export function TaskCard({ task, onToggleComplete }: TaskCardProps) {
       onToggleComplete(task.id);
       setIsCompleting(false);
     }, 300);
+  };
+
+  const handleUpdate = (updatedTask: Task) => {
+    onUpdateTask(updatedTask);
+    setIsEditing(false); // Close dialog after update
   };
 
   return (
@@ -108,6 +124,20 @@ export function TaskCard({ task, onToggleComplete }: TaskCardProps) {
         {task.completed && (
           <CheckCircle2 className="h-5 w-5 text-wellness animate-gentle-bounce" />
         )}
+
+        <Dialog open={isEditing} onOpenChange={setIsEditing}>
+          <DialogTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 ml-2" onClick={() => setIsEditing(true)}>
+              <Edit className="h-4 w-4" />
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Edit Task</DialogTitle>
+            </DialogHeader>
+            <EditTaskForm task={task} onUpdateTask={handleUpdate} />
+          </DialogContent>
+        </Dialog>
       </div>
     </Card>
   );

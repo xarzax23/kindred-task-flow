@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* FullCalendar styles */
+@import '@fullcalendar/react/dist/main.css';
+@import '@fullcalendar/daygrid/main.css';
+@import '@fullcalendar/timegrid/main.css';
+
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
 */
@@ -18,24 +23,19 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 215 25% 15%;
 
-    /* Calming blue-green primary */
     --primary: 200 60% 45%;
     --primary-foreground: 0 0% 100%;
     --primary-glow: 200 70% 65%;
 
-    /* Soft, warm secondary */
     --secondary: 210 25% 92%;
     --secondary-foreground: 215 25% 20%;
 
-    /* Gentle muted tones */
     --muted: 210 20% 94%;
     --muted-foreground: 215 15% 50%;
 
-    /* Warm accent for motivation */
     --accent: 45 85% 70%;
     --accent-foreground: 25 30% 20%;
 
-    /* Wellness green */
     --wellness: 150 50% 55%;
     --wellness-foreground: 0 0% 100%;
 
@@ -73,7 +73,7 @@ All colors MUST be HSL.
 
     --sidebar-accent: 240 4.8% 95.9%;
 
-    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
 
     --sidebar-border: 220 13% 91%;
 
@@ -127,4 +127,10 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* FullCalendar event text wrapping */
+.fc-event-title {
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
 }

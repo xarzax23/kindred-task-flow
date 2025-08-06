@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { format, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, isToday, startOfWeek, endOfWeek, addDays } from "date-fns";
-import { Calendar as CalendarIcon, Plus, ChevronLeft, ChevronRight, Clock } from "lucide-react";
+import { Calendar as CalendarIcon, Plus, ChevronLeft, ChevronRight, Clock, ZoomIn, ZoomOut } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,10 +8,16 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { AddTaskForm } from "@/components/AddTaskForm";
 import { cn } from "@/lib/utils";
 import { useTasks } from "@/context/TaskContext";
-import { Task } from "@/context/TaskContext";
-import DayView from "./DayView";
+import { useTimeBlocks } from "@/context/TimeBlockContext";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { TimeBlockForm } from "@/components/TimeBlockForm";
+import { Task, TimeBlock } from "@/types";
 import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 
+import FullCalendar from '@fullcalendar/react';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import timeGridPlugin from '@fullcalendar/timegrid';
+import interactionPlugin from '@fullcalendar/interaction';
 
 const categoryColors: Record<Task['category'], string> = {
   work: "bg-primary/20 text-primary border-primary/30",
@@ -20,136 +26,92 @@ const categoryColors: Record<Task['category'], string> = {
   personal: "bg-purple-100 text-purple-700 border-purple-200",
 };
 
-type CalendarView = 'month' | 'week' | 'day';
+type CalendarView = 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay';
 
 export default function Calendar() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
-  const [view, setView] = useState<CalendarView>('month');
-  const { tasks, addTask, toggleTask } = useTasks();
+  const { tasks, addTask, toggleTask, updateTask } = useTasks();
+  const { timeBlocks, deleteTimeBlock } = useTimeBlocks();
+  const [isTimeBlockModalOpen, setIsTimeBlockModalOpen] = useState(false);
+  const [selectedTimeBlock, setSelectedTimeBlock] = useState<TimeBlock | undefined>(undefined);
   const [isAddingTask, setIsAddingTask] = useState(false);
+  
+  const zoomLevels = [
+    { slotDuration: '01:00:00', slotLabelInterval: '01:00:00' }, // Zoom out
+    { slotDuration: '00:30:00', slotLabelInterval: '00:30:00' }, // Default
+    { slotDuration: '00:15:00', slotLabelInterval: '00:30:00' }  // Zoom in
+  ];
+  const [zoomLevel, setZoomLevel] = useState(1); // Default zoom level
+
+  const calendarRef = useRef<FullCalendar>(null);
 
   const getTasksForDate = (date: Date) => {
-    return tasks.filter(task => task.dueDate && isSameDay(task.dueDate, date))
-                .sort((a, b) => (a.startTime || "").localeCompare(b.startTime || ""));
+    return tasks.filter(task => isSameDay(task.dueDate, date));
   };
 
   const handleAddTask = (newTask: Omit<Task, "id" | "completed">) => {
     addTask({ ...newTask, dueDate: selectedDate });
   };
 
-  const navigate = (direction: 'prev' | 'next') => {
-    if (view === 'month') {
-      setCurrentDate(prev => {
-        const newMonth = new Date(prev);
-        newMonth.setMonth(prev.getMonth() + (direction === 'prev' ? -1 : 1));
-        return newMonth;
-      });
-    } else if (view === 'week') {
-      setCurrentDate(prev => addDays(prev, direction === 'prev' ? -7 : 7));
-    } else {
-      setSelectedDate(prev => addDays(prev, direction === 'prev' ? -1 : 1));
-    }
+  const handleZoomIn = () => {
+    setZoomLevel(prev => Math.min(prev + 1, zoomLevels.length - 1));
   };
 
-  const renderMonthView = () => {
-    const monthStart = startOfMonth(currentDate);
-    const monthEnd = endOfMonth(currentDate);
-    const calendarDays = eachDayOfInterval({ start: startOfWeek(monthStart), end: endOfWeek(monthEnd) });
-
-    return (
-      <Card className="p-4">
-        <div className="grid grid-cols-7 gap-1 mb-2">
-          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-            <div key={day} className="p-2 text-center text-sm font-medium text-muted-foreground">{day}</div>
-          ))}
-        </div>
-        <div className="grid grid-cols-7 gap-1">
-          {calendarDays.map(day => {
-            const dayTasks = getTasksForDate(day);
-            const isSelected = isSameDay(day, selectedDate);
-            const isCurrentMonth = day.getMonth() === currentDate.getMonth();
-
-            return (
-              <button
-                key={day.toISOString()}
-                onClick={() => setSelectedDate(day)}
-                className={cn(
-                  "p-2 min-h-[80px] rounded-lg border-2 transition-all flex flex-col items-start gap-1",
-                  isSelected ? "border-primary bg-primary/10" : "border-transparent hover:border-muted hover:bg-muted/50",
-                  !isCurrentMonth && "text-muted-foreground/50 bg-muted/20",
-                  isToday(day) && "ring-2 ring-primary/30"
-                )}
-              >
-                <span className={cn("font-medium", isToday(day) ? "text-primary" : "")}>{format(day, "d")}</span>
-                {dayTasks.length > 0 && (
-                  <div className="flex flex-col items-start w-full gap-1">
-                    {dayTasks.slice(0, 2).map(task => (
-                      <div key={task.id} className={cn("w-full h-1.5 rounded-full", categoryColors[task.category])} />
-                    ))}
-                    {dayTasks.length > 2 && <span className="text-xs text-muted-foreground">+{dayTasks.length - 2} more</span>}
-                  </div>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </Card>
-    );
+  const handleZoomOut = () => {
+    setZoomLevel(prev => Math.max(prev - 1, 0));
   };
 
-  const renderWeekView = () => {
-    const weekStart = startOfWeek(selectedDate);
-    const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const events = useMemo(() => [
+    ...tasks.map(task => ({
+      id: task.id,
+      title: task.title,
+      start: `${format(task.dueDate, 'yyyy-MM-dd')}T${task.startTime || '00:00:00'}`,
+      end: task.endTime ? `${format(task.dueDate, 'yyyy-MM-dd')}T${task.endTime}` : undefined,
+      duration: task.duration,
+      // color: categoryColors[task.category].split(' ')[0].replace('bg-', '#').replace('/20', ''), // Extract hex color
+      // For now, let's use a default color or rely on FullCalendar's default styling
+      color: '#3788d8', // A default blue color
+      extendedProps: {
+        task: task,
+      },
+    })),
+    ...timeBlocks.map(tb => ({
+      id: tb.id,
+      title: tb.label,
+      start: tb.startTime.toISOString(),
+      end: tb.endTime.toISOString(),
+      color: tb.color,
+      display: 'background',
+      extendedProps: {
+        timeBlock: tb,
+      },
+    })),
+  ], [tasks, timeBlocks]);
 
-    return (
-      <Card className="p-4">
-        <div className="grid grid-cols-7 gap-2">
-          {weekDays.map(day => (
-            <div key={day.toISOString()} className="space-y-2">
-              <div className="text-center font-semibold">{format(day, "EEE d")}</div>
-              <div className="space-y-2 p-1 rounded-md bg-muted/30 min-h-[100px]">
-                {getTasksForDate(day).map(task => (
-                  <div key={task.id} className="p-1.5 rounded-md text-xs bg-background border shadow-sm">
-                    <p className="font-medium truncate">{task.title}</p>
-                    <p className="text-muted-foreground">{task.startTime}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </Card>
-    );
+  console.log("FullCalendar Events:", events);
+
+  const handleEventClick = (clickInfo: any) => {
+    // Handle event click, e.g., open edit modal for task or time block
+    console.log('Event clicked:', clickInfo.event);
   };
 
-  const renderDayView = () => <DayView />;
-
-  const getHeaderTitle = () => {
-    if (view === 'month') return format(currentDate, "MMMM yyyy");
-    if (view === 'week') {
-      const weekStart = startOfWeek(selectedDate);
-      const weekEnd = endOfWeek(selectedDate);
-      return `${format(weekStart, "MMM d")} - ${format(weekEnd, "MMM d, yyyy")}`;
-    }
-    return format(selectedDate, "EEEE, MMMM d, yyyy");
+  const handleDateSelect = (selectInfo: any) => {
+    // Handle date selection, e.g., open add task modal for selected date/time
+    console.log('Date selected:', selectInfo);
   };
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">{getHeaderTitle()}</h1>
+          <h1 className="text-2xl font-bold text-foreground">Calendar</h1>
           <p className="text-muted-foreground">Your schedule at a glance</p>
         </div>
+        
         <div className="flex gap-2">
-          <Button variant={view === 'month' ? 'default' : 'outline'} onClick={() => setView('month')}>Month</Button>
-          <Button variant={view === 'week' ? 'default' : 'outline'} onClick={() => setView('week')}>Week</Button>
-          <Button variant={view === 'day' ? 'default' : 'outline'} onClick={() => setView('day')}>Day</Button>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => navigate('prev')}><ChevronLeft className="h-4 w-4" /></Button>
-          <Button variant="outline" size="sm" onClick={() => navigate('next')}><ChevronRight className="h-4 w-4" /></Button>
+          <Button variant="outline" size="sm" onClick={() => calendarRef.current?.getApi().prev()}><ChevronLeft className="h-4 w-4" /></Button>
+          <Button variant="outline" size="sm" onClick={() => calendarRef.current?.getApi().next()}><ChevronRight className="h-4 w-4" /></Button>
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" className="gap-2"><CalendarIcon className="h-4 w-4" />Jump to Date</Button>
@@ -158,18 +120,93 @@ export default function Calendar() {
               <CalendarPicker
                 mode="single"
                 selected={selectedDate}
-                onSelect={(date) => date && setSelectedDate(date)}
+                onSelect={(date) => {
+                  if (date) {
+                    setSelectedDate(date);
+                    calendarRef.current?.getApi().gotoDate(date);
+                  }
+                }}
               />
             </PopoverContent>
           </Popover>
+          <Dialog open={isTimeBlockModalOpen} onOpenChange={setIsTimeBlockModalOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="gap-2"><Clock className="h-4 w-4" />Editar Franjas</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{selectedTimeBlock ? "Edit" : "Create"} Time Block</DialogTitle>
+              </DialogHeader>
+              <TimeBlockForm
+                timeBlock={selectedTimeBlock}
+                onClose={() => {
+                  setIsTimeBlockModalOpen(false);
+                  setSelectedTimeBlock(undefined);
+                }}
+              />
+              <div className="mt-4">
+                <h3 className="font-semibold">Existing Time Blocks</h3>
+                <div className="space-y-2 mt-2">
+                  {timeBlocks.map(tb => (
+                    <div key={tb.id} className="flex items-center justify-between p-2 rounded-lg" style={{ backgroundColor: tb.color }}>
+                      <span>{tb.label}</span>
+                      <div>
+                        <Button variant="ghost" size="sm" onClick={() => {
+                          setSelectedTimeBlock(tb);
+                          setIsTimeBlockModalOpen(true);
+                        }}><Clock className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="sm" onClick={() => deleteTimeBlock(tb.id)}><Plus className="h-4 w-4" /></Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+          <Button variant="outline" size="sm" onClick={handleZoomOut}><ZoomOut className="h-4 w-4" /></Button>
+          <Button variant="outline" size="sm" onClick={handleZoomIn}><ZoomIn className="h-4 w-4" /></Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          {view === 'month' && renderMonthView()}
-          {view === 'week' && renderWeekView()}
-          {view === 'day' && renderDayView()}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-120px)]">
+        <div className="lg:col-span-2 h-full">
+          <FullCalendar
+            height="100%"
+            ref={calendarRef}
+            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+            initialView="timeGridWeek"
+            headerToolbar={{
+              left: 'prev,next today',
+              center: 'title',
+              right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            }}
+            events={events}
+            eventClick={handleEventClick}
+            selectable={true}
+            select={handleDateSelect}
+            slotDuration={zoomLevels[zoomLevel].slotDuration}
+            slotLabelInterval={zoomLevels[zoomLevel].slotLabelInterval}
+            dayCellContent={(arg) => {
+              return (
+                <>
+                  {arg.dayNumberText}
+                  {getTasksForDate(arg.date).map(task => (
+                    <div key={task.id} className={cn("w-full h-1.5 rounded-full", categoryColors[task.category])} />
+                  ))}
+                </>
+              );
+            }}
+            eventContent={(arg) => {
+              return (
+                <div className="fc-event-main-frame">
+                  <div className="fc-event-time">{arg.timeText}</div>
+                  <div className="fc-event-title-container">
+                    <div className="fc-event-title fc-sticky">{arg.event.title}</div>
+                  </div>
+                </div>
+              );
+            }}
+          />
         </div>
 
         <div className="space-y-4">
@@ -185,7 +222,12 @@ export default function Calendar() {
             </div>
             {isAddingTask && (
               <div className="mb-4">
-                <AddTaskForm onAddTask={handleAddTask} isOpen={isAddingTask} onToggle={() => setIsAddingTask(!isAddingTask)} />
+                <AddTaskForm 
+                  onAddTask={handleAddTask} 
+                  isOpen={isAddingTask} 
+                  onToggle={() => setIsAddingTask(!isAddingTask)}
+                  initialDate={selectedDate} // Pass the selectedDate here
+                />
               </div>
             )}
             <div className="space-y-3 max-h-96 overflow-y-auto">
