@@ -4,15 +4,17 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { BarChart3, TrendingUp, Target, Calendar, Clock, Award, XCircle } from "lucide-react";
 import { useTasks } from "@/context/TaskContext";
+import { useCategories } from "@/context/CategoryContext";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export default function Analytics() {
   const { tasks } = useTasks();
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const { categories } = useCategories();
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
 
-  const filteredTasks = selectedCategory
-    ? tasks.filter(task => task.category === selectedCategory)
+  const filteredTasks = selectedCategoryId
+    ? tasks.filter(task => task.categoryId === selectedCategoryId)
     : tasks;
 
   const totalTasks = filteredTasks.length;
@@ -21,23 +23,15 @@ export default function Analytics() {
   const completionRate = totalTasks > 0 ? Math.round((completedTasksCount / totalTasks) * 100) : 0;
   const totalTimeSpent = completedTasks.reduce((acc, task) => acc + task.duration, 0);
 
-  const categoryStats = tasks.reduce((acc, task) => {
-    if (!acc[task.category]) {
-      acc[task.category] = { completed: 0, total: 0 };
-    }
-    acc[task.category].total++;
-    if (task.completed) {
-      acc[task.category].completed++;
-    }
-    return acc;
-  }, {} as Record<string, { completed: number; total: number }>);
-
-  const categoryDisplay = {
-    work: { color: "from-primary/20 to-primary/10 border-primary/30", name: "Work" },
-    wellness: { color: "from-wellness/20 to-wellness/10 border-wellness/30", name: "Wellness" },
-    home: { color: "from-accent/20 to-accent/10 border-accent/30", name: "Home" },
-    personal: { color: "from-purple-100 to-purple-50 border-purple-200", name: "Personal" },
-  };
+  const categoryStats = categories.map(category => {
+    const categoryTasks = tasks.filter(task => task.categoryId === category.id);
+    const completedCategoryTasks = categoryTasks.filter(task => task.completed);
+    return {
+      ...category,
+      total: categoryTasks.length,
+      completed: completedCategoryTasks.length,
+    };
+  });
 
   return (
     <div className="p-6 space-y-6">
@@ -106,27 +100,27 @@ export default function Analytics() {
           </div>
           
           <div className="space-y-4">
-            {Object.entries(categoryStats).map(([category, stats]) => {
-              const percentage = stats.total > 0 ? (stats.completed / stats.total) * 100 : 0;
-              const displayInfo = categoryDisplay[category as keyof typeof categoryDisplay];
+            {categoryStats.map(category => {
+              const percentage = category.total > 0 ? (category.completed / category.total) * 100 : 0;
               return (
                 <div 
-                  key={category} 
+                  key={category.id} 
                   className={cn(
-                    `p-4 rounded-lg bg-gradient-to-r ${displayInfo.color} cursor-pointer hover:shadow-md transition-shadow`,
-                    selectedCategory === category && "ring-2 ring-offset-2 ring-primary"
+                    `p-4 rounded-lg bg-gradient-to-r cursor-pointer hover:shadow-md transition-shadow`,
+                    selectedCategoryId === category.id && "ring-2 ring-offset-2 ring-primary"
                   )}
-                  onClick={() => setSelectedCategory(category)}
+                  style={{border: `1px solid ${category.color}`, background: `linear-gradient(to right, ${category.color}20, ${category.color}10)`}}
+                  onClick={() => setSelectedCategoryId(category.id)}
                 >
                   <div className="flex justify-between items-center mb-2">
-                    <span className="font-medium">{displayInfo.name}</span>
+                    <span className="font-medium">{category.label}</span>
                     <Badge variant="outline" className="bg-background/70">
                       {Math.round(percentage)}%
                     </Badge>
                   </div>
                   <div className="flex justify-between items-center text-sm text-muted-foreground mb-2">
-                    <span>{stats.completed} completed</span>
-                    <span>{stats.total} total</span>
+                    <span>{category.completed} completed</span>
+                    <span>{category.total} total</span>
                   </div>
                   <Progress value={percentage} className="h-2" />
                 </div>
@@ -176,11 +170,11 @@ export default function Analytics() {
         </Card>
       </div>
 
-      {selectedCategory && (
+      {selectedCategoryId && (
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold">Completed {categoryDisplay[selectedCategory as keyof typeof categoryDisplay].name} Tasks</h3>
-            <Button variant="outline" onClick={() => setSelectedCategory(null)}>
+            <h3 className="text-lg font-semibold">Completed {categories.find(c => c.id === selectedCategoryId)?.label} Tasks</h3>
+            <Button variant="outline" onClick={() => setSelectedCategoryId(null)}>
               <XCircle className="h-4 w-4 mr-2" />
               View All Tasks
             </Button>

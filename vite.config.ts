@@ -17,6 +17,9 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "@fullcalendar/core/main.css": path.resolve(__dirname, "./node_modules/@fullcalendar/core/main.css"),
+      "@fullcalendar/daygrid/main.css": path.resolve(__dirname, "./node_modules/@fullcalendar/daygrid/main.css"),
+      "@fullcalendar/timegrid/main.css": path.resolve(__dirname, "./node_modules/@fullcalendar/timegrid/main.css"),
     },
   },
 }));

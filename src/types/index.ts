@@ -1,15 +1,20 @@
-export interface TimeBlock {
+export interface Category {
   id: string;
   label: string;
+  color: string;
+}
+
+export interface CalendarEvent {
+  id: string;
+  categoryId: string;
   startTime: Date;
   endTime: Date;
-  color: string; // e.g., '#ff0000'
 }
 
 export interface Task {
   id: string;
   title: string;
-  category: "work" | "home" | "wellness" | "personal";
+  categoryId: string;
   priority: "low" | "medium" | "high";
   completed: boolean;
   dueDate: Date;

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from "react";
-import { format, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, isToday, startOfWeek, endOfWeek, addDays } from "date-fns";
+import { format, isSameDay } from "date-fns";
 import { Calendar as CalendarIcon, Plus, ChevronLeft, ChevronRight, Clock, ZoomIn, ZoomOut } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,10 +8,11 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { AddTaskForm } from "@/components/AddTaskForm";
 import { cn } from "@/lib/utils";
 import { useTasks } from "@/context/TaskContext";
-import { useTimeBlocks } from "@/context/TimeBlockContext";
+import { useCategories } from "@/context/CategoryContext";
+import { useCalendarEvents } from "@/context/CalendarEventContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { TimeBlockForm } from "@/components/TimeBlockForm";
-import { Task, TimeBlock } from "@/types";
+import { CategoryForm } from "@/components/CategoryForm";
+import { Task, Category, CalendarEvent } from "@/types";
 import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 
 import FullCalendar from '@fullcalendar/react';
@@ -19,30 +20,21 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 
-const categoryColors: Record<Task['category'], string> = {
-  work: "bg-primary/20 text-primary border-primary/30",
-  home: "bg-accent/20 text-accent-foreground border-accent/30",
-  wellness: "bg-green-100 text-green-700 border-green-200",
-  personal: "bg-purple-100 text-purple-700 border-purple-200",
-};
-
-type CalendarView = 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay';
-
 export default function Calendar() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [currentDate, setCurrentDate] = useState<Date>(new Date());
-  const { tasks, addTask, toggleTask, updateTask } = useTasks();
-  const { timeBlocks, deleteTimeBlock } = useTimeBlocks();
-  const [isTimeBlockModalOpen, setIsTimeBlockModalOpen] = useState(false);
-  const [selectedTimeBlock, setSelectedTimeBlock] = useState<TimeBlock | undefined>(undefined);
+  const { tasks, addTask, toggleTask } = useTasks();
+  const { categories, addCategory, deleteCategory } = useCategories();
+  const { calendarEvents, addCalendarEvent, deleteCalendarEvent } = useCalendarEvents();
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<Category | undefined>(undefined);
   const [isAddingTask, setIsAddingTask] = useState(false);
   
   const zoomLevels = [
-    { slotDuration: '01:00:00', slotLabelInterval: '01:00:00' }, // Zoom out
-    { slotDuration: '00:30:00', slotLabelInterval: '00:30:00' }, // Default
-    { slotDuration: '00:15:00', slotLabelInterval: '00:30:00' }  // Zoom in
+    { slotDuration: '01:00:00', slotLabelInterval: '01:00:00' },
+    { slotDuration: '00:30:00', slotLabelInterval: '00:30:00' },
+    { slotDuration: '00:15:00', slotLabelInterval: '00:30:00' }
   ];
-  const [zoomLevel, setZoomLevel] = useState(1); // Default zoom level
+  const [zoomLevel, setZoomLevel] = useState(1);
 
   const calendarRef = useRef<FullCalendar>(null);
 
@@ -62,43 +54,47 @@ export default function Calendar() {
     setZoomLevel(prev => Math.max(prev - 1, 0));
   };
 
-  const events = useMemo(() => [
-    ...tasks.map(task => ({
-      id: task.id,
-      title: task.title,
-      start: `${format(task.dueDate, 'yyyy-MM-dd')}T${task.startTime || '00:00:00'}`,
-      end: task.endTime ? `${format(task.dueDate, 'yyyy-MM-dd')}T${task.endTime}` : undefined,
-      duration: task.duration,
-      // color: categoryColors[task.category].split(' ')[0].replace('bg-', '#').replace('/20', ''), // Extract hex color
-      // For now, let's use a default color or rely on FullCalendar's default styling
-      color: '#3788d8', // A default blue color
-      extendedProps: {
-        task: task,
-      },
-    })),
-    ...timeBlocks.map(tb => ({
-      id: tb.id,
-      title: tb.label,
-      start: tb.startTime.toISOString(),
-      end: tb.endTime.toISOString(),
-      color: tb.color,
-      display: 'background',
-      extendedProps: {
-        timeBlock: tb,
-      },
-    })),
-  ], [tasks, timeBlocks]);
+  const events = useMemo(() => {
+    const taskEvents = tasks.map(task => {
+      const category = categories.find(c => c.id === task.categoryId);
+      return {
+        id: task.id,
+        title: task.title,
+        start: `${format(task.dueDate, 'yyyy-MM-dd')}T${task.startTime || '00:00:00'}`,
+        end: task.endTime ? `${format(task.dueDate, 'yyyy-MM-dd')}T${task.endTime}` : undefined,
+        color: category ? category.color : '#3788d8',
+        extendedProps: { task },
+      };
+    });
 
-  console.log("FullCalendar Events:", events);
+    const calEvents = calendarEvents.map(ce => {
+      const category = categories.find(c => c.id === ce.categoryId);
+      return {
+        id: ce.id,
+        title: category ? category.label : 'Unnamed Event',
+        start: ce.startTime.toISOString(),
+        end: ce.endTime.toISOString(),
+        color: category ? category.color : '#808080',
+        display: 'background',
+        extendedProps: { calendarEvent: ce },
+      };
+    });
+
+    return [...taskEvents, ...calEvents];
+  }, [tasks, categories, calendarEvents]);
 
   const handleEventClick = (clickInfo: any) => {
-    // Handle event click, e.g., open edit modal for task or time block
     console.log('Event clicked:', clickInfo.event);
   };
 
   const handleDateSelect = (selectInfo: any) => {
-    // Handle date selection, e.g., open add task modal for selected date/time
-    console.log('Date selected:', selectInfo);
+    const { start, end } = selectInfo;
+    const newEvent: Omit<CalendarEvent, "id"> = {
+      categoryId: "", // Default or prompt user
+      startTime: start,
+      endTime: end,
+    };
+    addCalendarEvent(newEvent);
   };
 
   return (
@@ -129,33 +125,34 @@ export default function Calendar() {
               />
             </PopoverContent>
           </Popover>
-          <Dialog open={isTimeBlockModalOpen} onOpenChange={setIsTimeBlockModalOpen}>
+          <Dialog open={isCategoryModalOpen} onOpenChange={setIsCategoryModalOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" className="gap-2"><Clock className="h-4 w-4" />Editar Franjas</Button>
+              <Button variant="outline" className="gap-2"><Clock className="h-4 w-4" />Manage Categories</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>{selectedTimeBlock ? "Edit" : "Create"} Time Block</DialogTitle>
+                <DialogTitle>{selectedCategory ? "Edit" : "Create"} Category</DialogTitle>
               </DialogHeader>
-              <TimeBlockForm
-                timeBlock={selectedTimeBlock}
+              <CategoryForm
+                category={selectedCategory}
                 onClose={() => {
-                  setIsTimeBlockModalOpen(false);
-                  setSelectedTimeBlock(undefined);
+                  setIsCategoryModalOpen(false);
+                  setSelectedCategory(undefined);
                 }}
+                onSubmit={addCategory}
               />
               <div className="mt-4">
-                <h3 className="font-semibold">Existing Time Blocks</h3>
+                <h3 className="font-semibold">Existing Categories</h3>
                 <div className="space-y-2 mt-2">
-                  {timeBlocks.map(tb => (
-                    <div key={tb.id} className="flex items-center justify-between p-2 rounded-lg" style={{ backgroundColor: tb.color }}>
-                      <span>{tb.label}</span>
+                  {categories.map(c => (
+                    <div key={c.id} className="flex items-center justify-between p-2 rounded-lg" style={{ backgroundColor: c.color }}>
+                      <span>{c.label}</span>
                       <div>
                         <Button variant="ghost" size="sm" onClick={() => {
-                          setSelectedTimeBlock(tb);
-                          setIsTimeBlockModalOpen(true);
+                          setSelectedCategory(c);
+                          setIsCategoryModalOpen(true);
                         }}><Clock className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="sm" onClick={() => deleteTimeBlock(tb.id)}><Plus className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="sm" onClick={() => deleteCategory(c.id)}><Plus className="h-4 w-4" /></Button>
                       </div>
                     </div>
                   ))}
@@ -187,12 +184,18 @@ export default function Calendar() {
             slotDuration={zoomLevels[zoomLevel].slotDuration}
             slotLabelInterval={zoomLevels[zoomLevel].slotLabelInterval}
             dayCellContent={(arg) => {
+              const tasksForDate = getTasksForDate(arg.date);
               return (
                 <>
                   {arg.dayNumberText}
-                  {getTasksForDate(arg.date).map(task => (
-                    <div key={task.id} className={cn("w-full h-1.5 rounded-full", categoryColors[task.category])} />
-                  ))}
+                  <div className="flex flex-col items-center">
+                    {tasksForDate.map(task => {
+                      const category = categories.find(c => c.id === task.categoryId);
+                      return (
+                        <div key={task.id} className={cn("w-full h-1.5 rounded-full my-0.5", category ? `bg-[${category.color}]` : 'bg-gray-200')} style={{backgroundColor: category?.color}} />
+                      )
+                    })}
+                  </div>
                 </>
               );
             }}
@@ -226,29 +229,32 @@ export default function Calendar() {
                   onAddTask={handleAddTask} 
                   isOpen={isAddingTask} 
                   onToggle={() => setIsAddingTask(!isAddingTask)}
-                  initialDate={selectedDate} // Pass the selectedDate here
+                  initialDate={selectedDate}
                 />
               </div>
             )}
             <div className="space-y-3 max-h-96 overflow-y-auto">
-              {getTasksForDate(selectedDate).map(task => (
-                <div key={task.id} className="border rounded-lg p-3 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <input type="checkbox" checked={task.completed} onChange={() => toggleTask(task.id)} className="w-4 h-4 text-primary rounded focus:ring-primary" />
-                    <span className={cn("font-medium text-sm flex-1", task.completed && "line-through text-muted-foreground")}>{task.title}</span>
+              {getTasksForDate(selectedDate).map(task => {
+                const category = categories.find(c => c.id === task.categoryId);
+                return (
+                  <div key={task.id} className="border rounded-lg p-3 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <input type="checkbox" checked={task.completed} onChange={() => toggleTask(task.id)} className="w-4 h-4 text-primary rounded focus:ring-primary" />
+                      <span className={cn("font-medium text-sm flex-1", task.completed && "line-through text-muted-foreground")}>{task.title}</span>
+                    </div>
+                    <div className="flex items-center gap-2 ml-6">
+                      <Badge variant="outline" style={{backgroundColor: category?.color}}>{category?.label}</Badge>
+                      {(task.startTime || task.endTime) && (
+                        <span className="text-xs text-muted-foreground">
+                          {task.startTime && <span>{task.startTime}</span>}
+                          {task.startTime && task.endTime && <span>-</span>}
+                          {task.endTime && <span>{task.endTime}</span>}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 ml-6">
-                    <Badge variant="outline" className={cn("text-xs", categoryColors[task.category])}>{task.category}</Badge>
-                    {(task.startTime || task.endTime) && (
-                      <span className="text-xs text-muted-foreground">
-                        {task.startTime && <span>{task.startTime}</span>}
-                        {task.startTime && task.endTime && <span>-</span>}
-                        {task.endTime && <span>{task.endTime}</span>}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
+                )
+              })}
               {getTasksForDate(selectedDate).length === 0 && (
                 <div className="text-center py-6 text-muted-foreground">
                   <CalendarIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />

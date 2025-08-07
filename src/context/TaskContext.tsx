@@ -1,16 +1,5 @@
-import { createContext, useState, ReactNode, useContext } from "react";
-
-interface Task {
-  id: string;
-  title: string;
-  category: "work" | "home" | "wellness" | "personal";
-  priority: "low" | "medium" | "high";
-  completed: boolean;
-  dueDate: Date;
-  startTime?: string; // New: Optional start time (e.g., "09:00")
-  endTime?: string;   // New: Optional end time (e.g., "10:00")
-  duration: number; // in minutes
-}
+import { createContext, useState, ReactNode, useContext, useEffect } from "react";
+import { Task } from "@/types";
 
 interface TaskContextType {
   tasks: Task[];
@@ -33,77 +22,25 @@ interface TaskProviderProps {
   children: ReactNode;
 }
 
-const sampleTasks: Task[] = [
-    {
-      id: "1",
-      title: "Morning meditation",
-      category: "wellness",
-      priority: "medium",
-      completed: false,
-      dueDate: new Date(2025, 6, 29), // July 29, 2025
-      startTime: "08:00",
-      endTime: "08:15",
-      duration: 15,
-    },
-    {
-      id: "2", 
-      title: "Review project proposal",
-      category: "work",
-      priority: "high",
-      completed: false,
-      dueDate: new Date(2025, 6, 29), // July 29, 2025
-      startTime: "10:30",
-      endTime: "11:30",
-      duration: 60,
-    },
-    {
-      id: "3",
-      title: "Call mom",
-      category: "personal",
-      priority: "medium",
-      completed: true,
-      dueDate: new Date(2025, 6, 28), // July 28, 2025
-      startTime: "14:00",
-      endTime: "14:10",
-      duration: 10,
-    },
-    {
-      id: "4",
-      title: "Grocery shopping",
-      category: "home",
-      priority: "low",
-      completed: false,
-      dueDate: new Date(2025, 7, 1), // August 1, 2025
-      startTime: "16:00",
-      endTime: "16:45",
-      duration: 45,
-    },
-    {
-      id: "5",
-      title: "Team meeting",
-      category: "work",
-      priority: "high",
-      completed: false,
-      dueDate: new Date(2025, 7, 2), // August 2, 2025
-      startTime: "09:00",
-      endTime: "10:00",
-      duration: 60,
-    },
-    {
-      id: "6",
-      title: "Yoga class",
-      category: "wellness",
-      priority: "medium",
-      completed: false,
-      dueDate: new Date(2025, 7, 3), // August 3, 2025
-      startTime: "18:00",
-      endTime: "19:00",
-      duration: 60,
-    }
-  ];
-
 export const TaskProvider = ({ children }: TaskProviderProps) => {
-  const [tasks, setTasks] = useState<Task[]>(sampleTasks);
+  const [tasks, setTasks] = useState<Task[]>(() => {
+    try {
+      const item = window.localStorage.getItem('tasks');
+      const parsed = item ? JSON.parse(item) : [];
+      return parsed.map((t: any) => ({...t, dueDate: new Date(t.dueDate)}));
+    } catch (error) {
+      console.error("Error reading tasks from localStorage", error);
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('tasks', JSON.stringify(tasks));
+    } catch (error) {
+      console.error("Error saving tasks to localStorage", error);
+    }
+  }, [tasks]);
 
   const addTask = (task: Omit<Task, "id" | "completed">) => {
     const newTask: Task = {

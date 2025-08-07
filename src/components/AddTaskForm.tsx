@@ -9,42 +9,36 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-
-interface Task {
-  id: string;
-  title: string;
-  category: "work" | "home" | "wellness" | "personal";
-  priority: "low" | "medium" | "high";
-  completed: boolean;
-  dueDate: Date;
-  startTime?: string;
-  endTime?: string;
-  duration: number;
-}
+import { Task, Category } from "@/types";
+import { useCategories } from "@/context/CategoryContext";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { CategoryForm } from "./CategoryForm";
 
 interface AddTaskFormProps {
   onAddTask: (task: Omit<Task, "id" | "completed">) => void;
   isOpen: boolean;
   onToggle: () => void;
-  initialDate?: Date; // New prop for initial date
+  initialDate?: Date;
 }
 
 export function AddTaskForm({ onAddTask, isOpen, onToggle, initialDate }: AddTaskFormProps) {
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState<Task["category"]>("personal");
+  const [categoryId, setCategoryId] = useState<string>("");
   const [priority, setPriority] = useState<Task["priority"]>("medium");
   const [duration, setDuration] = useState(30);
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [dueDate, setDueDate] = useState<Date | undefined>(initialDate || new Date());
+  const { categories } = useCategories();
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !dueDate) return; // dueDate is now required
+    if (!title.trim() || !dueDate || !categoryId) return;
 
     onAddTask({
       title: title.trim(),
-      category,
+      categoryId,
       priority,
       dueDate,
       duration,
@@ -52,14 +46,13 @@ export function AddTaskForm({ onAddTask, isOpen, onToggle, initialDate }: AddTas
       endTime: endTime || undefined,
     });
 
-    // Reset form
     setTitle("");
-    setCategory("personal");
+    setCategoryId("");
     setPriority("medium");
     setDuration(30);
     setStartTime("");
     setEndTime("");
-    setDueDate(initialDate || new Date()); // Reset to initialDate or current date
+    setDueDate(initialDate || new Date());
     onToggle();
   };
 
@@ -108,17 +101,27 @@ export function AddTaskForm({ onAddTask, isOpen, onToggle, initialDate }: AddTas
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
             <Label className="text-sm font-medium">Category</Label>
-            <Select value={category} onValueChange={(value: Task["category"]) => setCategory(value)}>
+            <Select value={categoryId} onValueChange={setCategoryId}>
               <SelectTrigger className="bg-background/80">
-                <SelectValue />
+                <SelectValue placeholder="Select a category" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="work">🏢 Work</SelectItem>
-                <SelectItem value="home">🏠 Home</SelectItem>
-                <SelectItem value="wellness">🌱 Wellness</SelectItem>
-                <SelectItem value="personal">👤 Personal</SelectItem>
+                {categories.map(category => (
+                  <SelectItem key={category.id} value={category.id}>{category.label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
+            <Dialog open={isCategoryModalOpen} onOpenChange={setIsCategoryModalOpen}>
+              <DialogTrigger asChild>
+                <Button variant="link" size="sm" className="p-0 h-auto">Create New Category</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create Category</DialogTitle>
+                </DialogHeader>
+                <CategoryForm onClose={() => setIsCategoryModalOpen(false)} />
+              </DialogContent>
+            </Dialog>
           </div>
 
           <div className="space-y-2">
