@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Task, Category } from "@/types";
 import { useCategories } from "@/context/CategoryContext";
+import { useTimeBlocks } from "@/context/TimeBlockContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { CategoryForm } from "./CategoryForm";
 
@@ -30,7 +31,23 @@ export function AddTaskForm({ onAddTask, isOpen, onToggle, initialDate }: AddTas
   const [endTime, setEndTime] = useState("");
   const [dueDate, setDueDate] = useState<Date | undefined>(initialDate || new Date());
   const { categories } = useCategories();
+  const { getTimeBlocksForCategory } = useTimeBlocks();
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+
+  // When the selected category changes, attempt to prefill the start and end
+  // times from the first time block defined for this category.  This ties
+  // categories to their associated time blocks, so that tasks are
+  // automatically scheduled within the user’s preferred time window.
+  useEffect(() => {
+    if (categoryId) {
+      const blocks = getTimeBlocksForCategory(categoryId);
+      if (blocks.length > 0) {
+        const block = blocks[0];
+        setStartTime(block.startTime);
+        setEndTime(block.endTime);
+      }
+    }
+  }, [categoryId, getTimeBlocksForCategory]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

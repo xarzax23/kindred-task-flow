@@ -4,17 +4,20 @@ import './index.css'
 import { TaskProvider } from './context/TaskContext.tsx'
 import { CategoryProvider } from './context/CategoryContext.tsx'
 import { CalendarEventProvider } from './context/CalendarEventContext.tsx'
+import { TimeBlockProvider } from './context/TimeBlockContext';
 
-import '@fullcalendar/core/main.css';
-import '@fullcalendar/daygrid/main.css';
-import '@fullcalendar/timegrid/main.css';
+import '@fullcalendar/core/index.css';
+import '@fullcalendar/daygrid/index.css';
+import '@fullcalendar/timegrid/index.css';
 
 createRoot(document.getElementById("root")!).render(
   <TaskProvider>
     <CategoryProvider>
-      <CalendarEventProvider>
-        <App />
-      </CalendarEventProvider>
+      <TimeBlockProvider>
+        <CalendarEventProvider>
+          <App />
+        </CalendarEventProvider>
+      </TimeBlockProvider>
     </CategoryProvider>
   </TaskProvider>
 );
