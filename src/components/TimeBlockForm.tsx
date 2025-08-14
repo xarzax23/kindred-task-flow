@@ -4,10 +4,10 @@ import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import {
   Form,
-  FormControl,
   FormField,
   FormItem,
   FormLabel,
+  FormControl,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -31,7 +31,7 @@ const schema = z.object({
   categoryId: z.string().min(1, "Category is required"),
   startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "HH:MM"),
   endTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "HH:MM"),
-  daysOfWeek: z.array(z.number()).refine((arr) => arr.length > 0, { message: "Select at least one day" }),
+  daysOfWeek: z.array(z.number()).min(1, { message: "Select at least one day" }),
 });
 
 interface Props {
@@ -51,13 +51,13 @@ export function TimeBlockForm({ timeBlock, onClose, onSubmit }: Props) {
           categoryId: timeBlock.categoryId,
           startTime: timeBlock.startTime,
           endTime: timeBlock.endTime,
-          daysOfWeek: timeBlock.daysOfWeek,
+          daysOfWeek: timeBlock.daysOfWeek ?? [],
         }
       : {
           categoryId: "",
           startTime: "19:00",
           endTime: "20:00",
-          daysOfWeek: [1, 3, 5], // Lunes, miércoles y viernes por defecto
+          daysOfWeek: [],
         },
   });
 
@@ -128,13 +128,13 @@ export function TimeBlockForm({ timeBlock, onClose, onSubmit }: Props) {
           name="daysOfWeek"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Days of Week</FormLabel>
+              <FormLabel>Days of the Week</FormLabel>
               <FormControl>
                 <div className="flex flex-wrap gap-2">
                   {DAYS.map((d) => (
                     <label key={d.id} className="flex items-center gap-1">
                       <Checkbox
-                        checked={field.value?.includes(d.id)}
+                        checked={field.value.includes(d.id)}
                         onCheckedChange={(checked) => {
                           const current = field.value || [];
                           if (checked) {

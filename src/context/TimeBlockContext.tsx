@@ -53,7 +53,9 @@ export const TimeBlockProvider = ({ children }: ProviderProps) => {
   };
 
   return (
-    <TimeBlockContext.Provider value={{ timeBlocks, addTimeBlock, updateTimeBlock, deleteTimeBlock, getTimeBlocksForCategory }}>
+    <TimeBlockContext.Provider
+      value={{ timeBlocks, addTimeBlock, updateTimeBlock, deleteTimeBlock, getTimeBlocksForCategory }}
+    >
       {children}
     </TimeBlockContext.Provider>
   );

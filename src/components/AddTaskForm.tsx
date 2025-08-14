@@ -34,7 +34,7 @@ export function AddTaskForm({ onAddTask, isOpen, onToggle, initialDate }: AddTas
   const { getTimeBlocksForCategory } = useTimeBlocks();
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 
-  // Autocompletar las horas al cambiar la categoría o la fecha
+  // Autocompletar horas según la franja y el día seleccionado
   useEffect(() => {
     if (categoryId && dueDate) {
       const blocks = getTimeBlocksForCategory(categoryId);
@@ -73,6 +73,9 @@ export function AddTaskForm({ onAddTask, isOpen, onToggle, initialDate }: AddTas
     onToggle();
   };
 
-  // ... (resto del componente igual que antes, sin cambios en la interfaz)
-  // Puedes reutilizar el contenido de AddTaskForm que ya te envié, sólo cambia el uso de useEffect y useTimeBlocks.
+  // Resto de la interfaz del formulario (sin cambios)
+  // Puedes reutilizar el HTML que tenías anteriormente para los campos de título,
+  // categoría, prioridad, fecha, horas y duración.
+
+  // ... (continúa igual que la versión anterior del formulario)
 }
