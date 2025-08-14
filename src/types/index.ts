@@ -23,3 +23,15 @@ export interface Task {
   duration: number;
 }
 
+/**
+ * Una franja de tiempo recurrente asociada a una categoría.
+ * daysOfWeek es un array con los días de la semana en los que se aplica (0=domingo, 6=sábado).
+ * Si está vacío o indefinido, la franja se aplica todos los días.
+ */
+export interface TimeBlock {
+  id: string;
+  categoryId: string;
+  startTime: string;
+  endTime: string;
+  daysOfWeek: number[];
+}

@@ -4,17 +4,18 @@ import './index.css';
 import { TaskProvider } from './context/TaskContext.tsx';
 import { CategoryProvider } from './context/CategoryContext.tsx';
 import { CalendarEventProvider } from './context/CalendarEventContext.tsx';
+import { TimeBlockProvider } from './context/TimeBlockContext';
 
-// FullCalendar ya no distribuye sus hojas de estilo en npm,
-// por lo que no importamos CSS aquí. Si quieres añadir estilo,
-// puedes enlazar la hoja de estilos desde un CDN en index.html.
+// No importamos CSS de FullCalendar aquí; si los necesitas, enlázalos desde un CDN en tu index.html.
 
 createRoot(document.getElementById('root')!).render(
   <TaskProvider>
     <CategoryProvider>
-      <CalendarEventProvider>
-        <App />
-      </CalendarEventProvider>
+      <TimeBlockProvider>
+        <CalendarEventProvider>
+          <App />
+        </CalendarEventProvider>
+      </TimeBlockProvider>
     </CategoryProvider>
   </TaskProvider>
 );
