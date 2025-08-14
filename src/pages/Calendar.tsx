@@ -45,12 +45,21 @@ export default function Calendar() {
 
   const calendarRef = useRef<FullCalendar>(null);
 
+  // Convierte un color hex (#RRGGBB) en rgba con transparencia
+  const hexToRgba = (hex: string, alpha: number): string => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  };
+
   const getTasksForDate = (date: Date) => {
     return tasks.filter(task => isSameDay(task.dueDate, date));
   };
 
+  // Ahora no forzamos la fecha: tomamos la que viene del formulario
   const handleAddTask = (newTask: Omit<Task, "id" | "completed">) => {
-    addTask({ ...newTask, dueDate: selectedDate });
+    addTask(newTask);
   };
 
   const handleZoomIn = () => {
@@ -62,6 +71,7 @@ export default function Calendar() {
   };
 
   const events = useMemo(() => {
+    // Tareas normales
     const taskEvents = tasks.map(task => {
       const category = categories.find(c => c.id === task.categoryId);
       return {
@@ -74,6 +84,7 @@ export default function Calendar() {
       };
     });
 
+    // Eventos del contexto CalendarEvent
     const calEvents = calendarEvents.map(ce => {
       const category = categories.find(c => c.id === ce.categoryId);
       return {
@@ -87,8 +98,23 @@ export default function Calendar() {
       };
     });
 
-    return [...taskEvents, ...calEvents];
-  }, [tasks, categories, calendarEvents]);
+    // Franjas convertidas en eventos de fondo con transparencia
+    const timeBlockEvents = timeBlocks.map(tb => {
+      const category = categories.find(c => c.id === tb.categoryId);
+      const bg = category ? hexToRgba(category.color, 0.2) : 'rgba(128,128,128,0.2)';
+      return {
+        id: `timeblock-${tb.id}`,
+        title: category ? category.label : 'Time Block',
+        daysOfWeek: tb.daysOfWeek && tb.daysOfWeek.length > 0 ? tb.daysOfWeek : [0,1,2,3,4,5,6],
+        startTime: tb.startTime,
+        endTime: tb.endTime,
+        display: 'background',
+        backgroundColor: bg,
+      };
+    });
+
+    return [...taskEvents, ...calEvents, ...timeBlockEvents];
+  }, [tasks, categories, calendarEvents, timeBlocks]);
 
   const handleEventClick = (clickInfo: any) => {
     console.log('Event clicked:', clickInfo.event);
@@ -110,6 +136,7 @@ export default function Calendar() {
 
   return (
     <div className="p-6 space-y-6">
+      {/* Encabezado y controles */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Calendar</h1>
@@ -136,7 +163,7 @@ export default function Calendar() {
               />
             </PopoverContent>
           </Popover>
-          {/* Manage Categories */}
+          {/* Gestionar categorías */}
           <Dialog open={isCategoryModalOpen} onOpenChange={setIsCategoryModalOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" className="gap-2"><Clock className="h-4 w-4" />Manage Categories</Button>
@@ -172,7 +199,7 @@ export default function Calendar() {
               </div>
             </DialogContent>
           </Dialog>
-          {/* Manage Time Blocks */}
+          {/* Gestionar franjas */}
           <Dialog open={isTimeBlockModalOpen} onOpenChange={setIsTimeBlockModalOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" className="gap-2"><Clock className="h-4 w-4" />Manage Time Blocks</Button>
@@ -217,11 +244,13 @@ export default function Calendar() {
               </div>
             </DialogContent>
           </Dialog>
+          {/* Zoom */}
           <Button variant="outline" size="sm" onClick={handleZoomOut}><ZoomOut className="h-4 w-4" /></Button>
           <Button variant="outline" size="sm" onClick={handleZoomIn}><ZoomIn className="h-4 w-4" /></Button>
         </div>
       </div>
 
+      {/* Calendario y lista de tareas */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-120px)]">
         <div className="lg:col-span-2 h-full">
           <FullCalendar
