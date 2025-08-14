@@ -25,8 +25,8 @@ export interface Task {
 
 /**
  * Una franja de tiempo recurrente asociada a una categoría.
- * daysOfWeek es un array con los días (0=domingo, 6=sábado) en los que se aplica.
- * Si está vacío o indefinido, la franja se aplica todos los días.
+ * daysOfWeek contiene los días (0=domingo, 6=sábado) en los que se aplica.
+ * Si está vacío o no definido, se aplica a todos los días.
  */
 export interface TimeBlock {
   id: string;

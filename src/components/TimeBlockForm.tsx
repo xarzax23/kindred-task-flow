@@ -86,11 +86,11 @@ export function TimeBlockForm({ timeBlock, onClose, onSubmit }: Props) {
                   <SelectTrigger>
                     <SelectValue placeholder="Select a category" />
                   </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((c: Category) => (
-                      <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>
-                    ))}
-                  </SelectContent>
+                    <SelectContent>
+                      {categories.map((c: Category) => (
+                        <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>
+                      ))}
+                    </SelectContent>
                 </Select>
               </FormControl>
               <FormMessage />
