@@ -1,5 +1,4 @@
 import { useTasks } from "@/context/TaskContext";
-import { useTimeBlocks } from "@/context/TimeBlockContext";
 import { isSameDay, format } from "date-fns";
 import { TaskCard } from "@/components/TaskCard";
 
@@ -10,10 +9,8 @@ interface DayViewProps {
 
 const DayView = ({ selectedDate, hourHeight }: DayViewProps) => {
   const { tasks, toggleTask, updateTask } = useTasks();
-  const { timeBlocks } = useTimeBlocks();
 
   const dayTasks = tasks.filter(task => isSameDay(task.dueDate, selectedDate));
-  const dayTimeBlocks = timeBlocks.filter(tb => isSameDay(tb.startTime, selectedDate));
 
   const timeSlots = Array.from({ length: 24 }, (_, i) => `${i.toString().padStart(2, '0')}:00`);
 
@@ -33,18 +30,6 @@ const DayView = ({ selectedDate, hourHeight }: DayViewProps) => {
 
       {/* Day Grid */}
       <div className="relative border-l">
-        {/* Time Blocks */}
-        {dayTimeBlocks.map(tb => (
-          <div
-            key={tb.id}
-            className="absolute w-full rounded-lg -z-10"
-            style={{
-              backgroundColor: tb.color,
-              top: `${(timeToMinutes(format(tb.startTime, "HH:mm"))) / 60 * hourHeight}px`,
-              height: `${(timeToMinutes(format(tb.endTime, "HH:mm")) - timeToMinutes(format(tb.startTime, "HH:mm"))) / 60 * hourHeight}px`,
-            }}
-          />
-        ))}
         {/* Tasks */}
         {dayTasks.map(task => (
           <div 
